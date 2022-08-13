@@ -1,6 +1,18 @@
-type Template = [[u8; 10]; 10];
+use im::{hashmap, HashMap};
+use uuid::{uuid, Uuid};
 
-const GAME_0: Template = [
+pub type Template = [[u8; 10]; 10];
+pub type Templates = HashMap<Uuid, Template>;
+
+pub fn build_all() -> Templates {
+    hashmap! {
+        uuid!("5109c2b1-7c4d-4f56-9be2-f6675c968331") => GAME_0,
+        uuid!("dd8fb490-72c8-485b-aeea-537b9be34e4b") => GAME_1,
+        uuid!("37073150-f43d-4609-94ec-dcbeffcb472a") => GAME_2,
+    }
+}
+
+pub const GAME_0: Template = [
     [00, 00, 00, 00, 00, 00, 00, 00, 00, 00],
     [00, 00, 00, 00, 00, 00, 00, 00, 00, 00],
     [00, 00, 00, 00, 00, 00, 00, 00, 00, 00],
@@ -13,7 +25,7 @@ const GAME_0: Template = [
     [00, 00, 00, 00, 00, 00, 00, 00, 00, 00],
 ];
 
-const GAME_1: Template = [
+pub const GAME_1: Template = [
     [00, 00, 00, 00, 00, 04, 03, 02, 01, 00],
     [17, 00, 00, 00, 00, 00, 00, 00, 00, 00],
     [00, 00, 00, 00, 00, 05, 00, 00, 00, 00],
@@ -26,7 +38,7 @@ const GAME_1: Template = [
     [00, 00, 00, 00, 00, 00, 00, 13, 14, 00],
 ];
 
-const GAME_2: Template = [
+pub const GAME_2: Template = [
     [00, 00, 00, 00, 00, 00, 00, 00, 20, 00],
     [00, 00, 13, 00, 00, 00, 00, 00, 00, 00],
     [00, 00, 14, 00, 00, 10, 00, 07, 00, 00],
@@ -44,10 +56,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_game_1() {
-        //test_single_game(GAME_0);
-        test_single_game(GAME_1);
-        test_single_game(GAME_2);
+    pub fn test_all_templates() {
+        for t in build_all() {
+            test_single_game(t.1);    
+        }
     }
 
     fn test_single_game(template: Template) {

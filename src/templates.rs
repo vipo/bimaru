@@ -51,6 +51,32 @@ pub const GAME_2: Template = [
     [00, 18, 00, 11, 12, 00, 00, 00, 19, 00],
 ];
 
+pub trait OccupiedCells {
+    fn occupied_cols(&self) -> [u8; 10];
+    fn occupied_rows(&self) -> [u8; 10];
+}
+
+impl OccupiedCells for Template {
+    fn occupied_cols(&self) -> [u8; 10] {
+        occ(&|i, j| self[i][j])
+    }
+    fn occupied_rows(&self) -> [u8; 10] {
+        occ(&|i, j| self[j][i])
+    }
+}
+
+fn occ(accessor: &dyn Fn(usize, usize) -> u8) -> [u8; 10] {
+    let mut result: [u8; 10] = [0; 10];
+    for i in 0..=9 {
+        for j in 0..=9 {
+            if accessor(i, j) > 0 {
+                result[i] += 1;
+            };
+        }
+    }
+    result
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -1,8 +1,8 @@
-mod templates;
+mod setups;
 
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
-use templates::{build_all, Templates, OccupiedCells};
+use setups::{build_all, Setups, OccupiedCells};
 use tide::{Request, Response, Server};
 use uuid::Uuid;
 
@@ -20,13 +20,13 @@ struct NewGame {
 
 #[derive(Clone)]
 struct State {
-    templates: Templates,
+    setups: Setups,
 }
 
 #[async_std::main]
 async fn main() -> tide::Result<()> {
     let state: State = State {
-        templates: build_all(),
+        setups: build_all(),
     };
     let mut app: Server<State> = tide::with_state(state);
     app.at("/v1/game/:template_id").post(new_game_v1);
@@ -37,7 +37,7 @@ async fn main() -> tide::Result<()> {
 async fn new_game_v1(req: Request<State>) -> tide::Result {
     let game_template_str: &str = req.param("template_id")?;
     if let Ok(game_template_id) = Uuid::from_str(game_template_str) {
-        if let Some(t) = req.state().templates.get(&game_template_id) {
+        if let Some(t) = req.state().setups.get(&game_template_id) {
             let response_entity: NewGame = NewGame {
                 id: Uuid::new_v4(),
                 game_template_id,

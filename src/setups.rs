@@ -1,10 +1,10 @@
 use im::{hashmap, HashMap};
 use uuid::{uuid, Uuid};
 
-pub type Template = [[u8; 10]; 10];
-pub type Templates = HashMap<Uuid, Template>;
+pub type Setup = [[u8; 10]; 10];
+pub type Setups = HashMap<Uuid, Setup>;
 
-pub fn build_all() -> Templates {
+pub fn build_all() -> Setups {
     hashmap! {
         uuid!("5109c2b1-7c4d-4f56-9be2-f6675c968331") => GAME_0,
         uuid!("dd8fb490-72c8-485b-aeea-537b9be34e4b") => GAME_1,
@@ -12,7 +12,7 @@ pub fn build_all() -> Templates {
     }
 }
 
-pub const GAME_0: Template = [
+pub const GAME_0: Setup = [
     [00, 00, 00, 00, 00, 00, 00, 00, 00, 00],
     [00, 00, 00, 00, 00, 00, 00, 00, 00, 00],
     [00, 00, 00, 00, 00, 00, 00, 00, 00, 00],
@@ -25,7 +25,7 @@ pub const GAME_0: Template = [
     [00, 00, 00, 00, 00, 00, 00, 00, 00, 00],
 ];
 
-pub const GAME_1: Template = [
+pub const GAME_1: Setup = [
     [00, 00, 00, 00, 00, 04, 03, 02, 01, 00],
     [17, 00, 00, 00, 00, 00, 00, 00, 00, 00],
     [00, 00, 00, 00, 00, 05, 00, 00, 00, 00],
@@ -38,7 +38,7 @@ pub const GAME_1: Template = [
     [00, 00, 00, 00, 00, 00, 00, 13, 14, 00],
 ];
 
-pub const GAME_2: Template = [
+pub const GAME_2: Setup = [
     [00, 00, 00, 00, 00, 00, 00, 00, 20, 00],
     [00, 00, 13, 00, 00, 00, 00, 00, 00, 00],
     [00, 00, 14, 00, 00, 10, 00, 07, 00, 00],
@@ -56,7 +56,7 @@ pub trait OccupiedCells {
     fn occupied_rows(&self) -> [u8; 10];
 }
 
-impl OccupiedCells for Template {
+impl OccupiedCells for Setup {
     fn occupied_cols(&self) -> [u8; 10] {
         occ(&|i, j| self[i][j])
     }
@@ -88,9 +88,9 @@ mod tests {
         }
     }
 
-    fn test_single_game(template: Template) {
+    fn test_single_game(setup: Setup) {
         let mut flat: Vec<u8> = Vec::with_capacity(100);
-        for row in template {
+        for row in setup {
             flat.append(&mut row.to_vec());
         }
         assert_eq!(100, flat.len());

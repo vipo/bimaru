@@ -12,17 +12,20 @@ pub fn build_all() -> Setups {
     }
 }
 
+const MAX_INDEX: usize = 9;
+const MIN_INDEX: usize = 0;
+
 pub const GAME_0: Setup = [
+    [00, 07, 06, 05, 00, 00, 00, 00, 00, 00],
     [00, 00, 00, 00, 00, 00, 00, 00, 00, 00],
-    [00, 00, 00, 00, 00, 00, 00, 00, 00, 00],
-    [00, 00, 00, 00, 00, 00, 00, 00, 00, 00],
-    [00, 00, 00, 00, 00, 00, 00, 00, 00, 00],
-    [00, 00, 00, 00, 00, 00, 00, 00, 00, 00],
-    [00, 00, 00, 00, 00, 00, 00, 00, 00, 00],
-    [00, 00, 00, 00, 00, 00, 00, 00, 00, 00],
-    [00, 00, 00, 00, 00, 00, 00, 00, 00, 00],
-    [00, 00, 00, 00, 00, 00, 00, 00, 00, 00],
-    [00, 00, 00, 00, 00, 00, 00, 00, 00, 00],
+    [08, 00, 00, 00, 00, 00, 00, 00, 00, 00],
+    [09, 00, 00, 04, 03, 02, 01, 00, 00, 20],
+    [10, 00, 00, 00, 00, 00, 00, 00, 00, 00],
+    [00, 00, 00, 00, 00, 00, 00, 00, 00, 19],
+    [11, 00, 00, 00, 00, 00, 00, 00, 00, 00],
+    [12, 00, 00, 00, 00, 00, 00, 00, 00, 00],
+    [00, 00, 00, 00, 00, 00, 00, 00, 00, 18],
+    [00, 13, 14, 00, 15, 16, 00, 17, 00, 00],
 ];
 
 pub const GAME_1: Setup = [
@@ -67,8 +70,8 @@ impl OccupiedCells for Setup {
 
 fn occ(accessor: &dyn Fn(usize, usize) -> u8) -> [u8; 10] {
     let mut result: [u8; 10] = [0; 10];
-    for i in 0..=9 {
-        for j in 0..=9 {
+    for i in MIN_INDEX..=MAX_INDEX {
+        for j in MIN_INDEX..=MAX_INDEX {
             if accessor(i, j) > 0 {
                 result[i] += 1;
             };
@@ -80,14 +83,11 @@ fn occ(accessor: &dyn Fn(usize, usize) -> u8) -> [u8; 10] {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use test_case::test_case;
 
-    #[test]
-    pub fn test_all_templates() {
-        for t in build_all() {
-            test_single_game(t.1);    
-        }
-    }
-
+    #[test_case(GAME_0)]
+    #[test_case(GAME_1)]
+    #[test_case(GAME_2)]
     fn test_single_game(setup: Setup) {
         let mut flat: Vec<u8> = Vec::with_capacity(100);
         for row in setup {
@@ -102,6 +102,18 @@ mod tests {
         let mut non_zero: Vec<u8> = flat.clone().into_iter().filter(|e| *e > 0).collect();
         non_zero.sort();
         let range: Vec<u8> = (1..=20).collect();
-        assert_eq!(range, non_zero)
+        assert_eq!(range, non_zero);
+
+        // corners do not touch
+        for i in MIN_INDEX + 1..MAX_INDEX {
+            for j in MIN_INDEX + 1..MAX_INDEX {
+                if setup[i][j] != 0 {
+                    assert_eq!(0, setup[i - 1][j - 1]);
+                    assert_eq!(0, setup[i - 1][j + 1]);
+                    assert_eq!(0, setup[i + 1][j - 1]);
+                    assert_eq!(0, setup[i + 1][j + 1]);
+                }
+            }
+        }
     }
 }

@@ -12,7 +12,7 @@ struct NewGame {
     #[serde(with = "uuid_as_string")]
     id: Uuid,
     #[serde(with = "uuid_as_string")]
-    game_template_id: Uuid,
+    game_setup_id: Uuid,
     number_of_hints: u8,
     occupied_rows: [u8; 10],
     occupied_cols: [u8; 10],
@@ -29,18 +29,18 @@ async fn main() -> tide::Result<()> {
         setups: build_all(),
     };
     let mut app: Server<State> = tide::with_state(state);
-    app.at("/v1/game/:template_id").post(new_game_v1);
+    app.at("/v1/game/:setup_id").post(new_game_v1);
     app.listen("0.0.0.0:8080").await?;
     Ok(())
 }
 
 async fn new_game_v1(req: Request<State>) -> tide::Result {
-    let game_template_str: &str = req.param("template_id")?;
-    if let Ok(game_template_id) = Uuid::from_str(game_template_str) {
-        if let Some(t) = req.state().setups.get(&game_template_id) {
+    let game_setup_str: &str = req.param("setup_id")?;
+    if let Ok(game_setup_id) = Uuid::from_str(game_setup_str) {
+        if let Some(t) = req.state().setups.get(&game_setup_id) {
             let response_entity: NewGame = NewGame {
                 id: Uuid::new_v4(),
-                game_template_id,
+                game_setup_id,
                 number_of_hints: 10,
                 occupied_cols: t.occupied_cols(),
                 occupied_rows: t.occupied_rows(),

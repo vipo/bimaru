@@ -15,3 +15,4 @@ im = "15.1.0"
 
 [dev-dependencies]
 test-case = "2.2.1"
+tide-testing = "0.1.3"

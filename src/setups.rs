@@ -12,8 +12,8 @@ pub fn build_all() -> Setups {
     }
 }
 
-const MAX_INDEX: usize = 9;
-const MIN_INDEX: usize = 0;
+pub const MAX_INDEX: usize = 9;
+pub const MIN_INDEX: usize = 0;
 
 pub const GAME_0: Setup = [
     [00, 07, 06, 05, 00, 00, 00, 00, 00, 00],
@@ -93,25 +93,25 @@ mod tests {
         for row in setup {
             flat.append(&mut row.to_vec());
         }
-        assert_eq!(100, flat.len());
+        assert_eq!(flat.len(), 100);
 
         let mut non_zero: Vec<u8> = flat.clone().into_iter().filter(|e| *e == 0).collect();
         non_zero.dedup();
-        assert_eq!(vec![0], non_zero);
+        assert_eq!(non_zero, vec![0]);
 
         let mut non_zero: Vec<u8> = flat.clone().into_iter().filter(|e| *e > 0).collect();
         non_zero.sort();
         let range: Vec<u8> = (1..=20).collect();
-        assert_eq!(range, non_zero);
+        assert_eq!(non_zero, range);
 
         // corners do not touch
         for i in MIN_INDEX + 1..MAX_INDEX {
             for j in MIN_INDEX + 1..MAX_INDEX {
                 if setup[i][j] != 0 {
-                    assert_eq!(0, setup[i - 1][j - 1]);
-                    assert_eq!(0, setup[i - 1][j + 1]);
-                    assert_eq!(0, setup[i + 1][j - 1]);
-                    assert_eq!(0, setup[i + 1][j + 1]);
+                    assert_eq!(setup[i - 1][j - 1], 0);
+                    assert_eq!(setup[i - 1][j + 1], 0);
+                    assert_eq!(setup[i + 1][j - 1], 0);
+                    assert_eq!(setup[i + 1][j + 1], 0);
                 }
             }
         }

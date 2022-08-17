@@ -1,16 +1,16 @@
 mod setups;
 
 use serde::{Deserialize, Serialize};
-use setups::{build_all, OccupiedCells, Setup, Setups};
-use std::sync::{Arc, RwLock};
-use std::{collections::HashMap, str::FromStr};
+use setups::{build_all, OccupiedCells, Setup, Setups, Searchable};
+use std::sync::Arc;
+use std::str::FromStr;
 use tide::{Request, Response, Server};
 use uuid::Uuid;
 
+const MAX_HINTS: u8 = 10;
+
 #[derive(Serialize, Deserialize)]
 struct NewGame {
-    #[serde(with = "uuid_as_string")]
-    session_id: Uuid,
     #[serde(with = "uuid_as_string")]
     game_setup_id: Uuid,
     number_of_hints: u8,
@@ -24,11 +24,16 @@ pub trait IsSolved {
 
 #[derive(Debug, Serialize, Deserialize)]
 struct CheckV1 {
-    coords: Vec<CoordV1>,
+    coords: Vec<Coord>,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
-struct CoordV1 {
+struct HintsV1 {
+    coords: Vec<Coord>,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+struct Coord {
     col: usize,
     row: usize,
 }
@@ -38,7 +43,7 @@ impl IsSolved for CheckV1 {
         if self.coords.len() == 20 {
             for i in setups::MIN_INDEX..=setups::MAX_INDEX {
                 for j in setups::MIN_INDEX..=setups::MAX_INDEX {
-                    if setup[i][j] > 0 && !self.coords.contains(&CoordV1 { col: j, row: i }) {
+                    if setup[i][j] > 0 && !self.coords.contains(&Coord { col: j, row: i }) {
                         return false;
                     }
                 }
@@ -50,10 +55,23 @@ impl IsSolved for CheckV1 {
     }
 }
 
+fn find_hints(setup: &Setup, limit: u8) -> Vec<Coord> {
+    let mut result = Vec::with_capacity(limit as usize);
+    for n in 1..=limit {
+        if let Some(t) = setup.find_position(n) {
+            result.push(Coord{row: t.0, col: t.1});
+        }
+    }
+    result
+}
+
 #[derive(Clone)]
 struct State {
     setups: Arc<Setups>,
-    sessions: Arc<RwLock<HashMap<Uuid, u8>>>,
+}
+#[derive(Deserialize)]
+struct HintQuery {
+    limit: u8,
 }
 
 #[async_std::main]
@@ -66,46 +84,49 @@ async fn main() -> tide::Result<()> {
 fn build_app() -> Server<State> {
     let state: State = State {
         setups: Arc::new(build_all()),
-        sessions: Arc::new(RwLock::new(HashMap::new())),
     };
     let mut app: Server<State> = tide::with_state(state);
     app.at("/v1/game/:setup_id").post(new_game_v1);
-    app.at("/v1/game/:setup_id/session/:session_id/check")
-        .post(check_v1);
+    app.at("/v1/game/:setup_id/check").post(check_v1);
+    app.at("/v1/game/:setup_id/hint").get(make_hint);
+
     app
+}
+
+async fn make_hint(req: Request<State>) -> tide::Result {
+    let game_setup_str: &str = req.param("setup_id")?;
+    if let Ok(game_setup_id) = Uuid::from_str(game_setup_str) {
+        if let Some(setup) = req.state().clone().setups.get(&game_setup_id) {
+            let limit: u8 = match req.query::<HintQuery>() {
+                Ok(v) => v.limit,
+                Err(_) => 0,
+            };
+            let hints = find_hints(setup, limit.min(MAX_HINTS));
+            yaml_response(200, &(HintsV1{coords: hints}))
+        } else {
+            not_found("Unknown game setup")
+        }
+    } else {
+        not_found("Game setup id not found")
+    }
 }
 
 async fn check_v1(mut req: Request<State>) -> tide::Result {
     let game_setup_str: &str = req.param("setup_id")?;
     if let Ok(game_setup_id) = Uuid::from_str(game_setup_str) {
         if let Some(setup) = req.state().clone().setups.get(&game_setup_id) {
-            let session_id_str: &str = req.param("session_id")?;
-            if let Ok(session_id) = Uuid::from_str(session_id_str) {
-                if req
-                    .state()
-                    .sessions
-                    .read()
-                    .unwrap()
-                    .contains_key(&session_id)
-                {
-                    if let Ok(body_str) = req.body_string().await {
-                        if let Ok(entity) = serde_yaml::from_str::<CheckV1>(&body_str) {
-                            if entity.solves(*setup) {
-                                finish()
-                            } else {
-                                try_harder()
-                            }
-                        } else {
-                            illegal_request("Could not parse entity")
-                        }
+            if let Ok(body_str) = req.body_string().await {
+                if let Ok(entity) = serde_yaml::from_str::<CheckV1>(&body_str) {
+                    if entity.solves(*setup) {
+                        finish()
                     } else {
-                        illegal_request("Could not read the request")
+                        try_harder()
                     }
                 } else {
-                    not_found("Unknown session")
+                    illegal_request("Could not parse entity")
                 }
             } else {
-                not_found("Session id not found")
+                illegal_request("Could not read the request")
             }
         } else {
             not_found("Unknown game setup")
@@ -119,12 +140,9 @@ async fn new_game_v1(req: Request<State>) -> tide::Result {
     let game_setup_str: &str = req.param("setup_id")?;
     if let Ok(game_setup_id) = Uuid::from_str(game_setup_str) {
         if let Some(s) = req.state().setups.get(&game_setup_id) {
-            let session_id = Uuid::new_v4();
-            req.state().sessions.write().unwrap().insert(session_id, 0);
             let response_entity: NewGame = NewGame {
-                session_id,
                 game_setup_id,
-                number_of_hints: 10,
+                number_of_hints: MAX_HINTS,
                 occupied_cols: s.occupied_cols(),
                 occupied_rows: s.occupied_rows(),
             };
@@ -219,14 +237,11 @@ mod tests {
         );
 
         let check_v1_entity = CheckV1 {
-            coords: vec![CoordV1 { col: 0, row: 0 }, CoordV1 { col: 1, row: 1 }],
+            coords: vec![Coord { col: 0, row: 0 }, Coord { col: 1, row: 1 }],
         };
         let check_v1_str = serde_yaml::to_string(&check_v1_entity).unwrap();
         let check_v1_resp = app
-            .post(format!(
-                "/v1/game/{}/session/{}/check",
-                game_setup_id, create_entity.session_id
-            ))
+            .post(format!("/v1/game/{}/check", game_setup_id))
             .body_string(check_v1_str)
             .await
             .unwrap();
@@ -234,37 +249,50 @@ mod tests {
 
         let check_v1_entity = CheckV1 {
             coords: vec![
-                CoordV1 { col: 0, row: 1 },
-                CoordV1 { col: 0, row: 4 },
-                CoordV1 { col: 2, row: 3 },
-                CoordV1 { col: 3, row: 6 },
-                CoordV1 { col: 3, row: 7 },
-                CoordV1 { col: 3, row: 8 },
-                CoordV1 { col: 5, row: 0 },
-                CoordV1 { col: 5, row: 2 },
-                CoordV1 { col: 5, row: 3 },
-                CoordV1 { col: 5, row: 4 },
-                CoordV1 { col: 5, row: 6 },
-                CoordV1 { col: 6, row: 0 },
-                CoordV1 { col: 7, row: 0 },
-                CoordV1 { col: 7, row: 7 },
-                CoordV1 { col: 7, row: 9 },
-                CoordV1 { col: 8, row: 0 },
-                CoordV1 { col: 8, row: 7 },
-                CoordV1 { col: 8, row: 9 },
-                CoordV1 { col: 9, row: 4 },
-                CoordV1 { col: 9, row: 5 },
+                Coord { col: 0, row: 1 },
+                Coord { col: 0, row: 4 },
+                Coord { col: 2, row: 3 },
+                Coord { col: 3, row: 6 },
+                Coord { col: 3, row: 7 },
+                Coord { col: 3, row: 8 },
+                Coord { col: 5, row: 0 },
+                Coord { col: 5, row: 2 },
+                Coord { col: 5, row: 3 },
+                Coord { col: 5, row: 4 },
+                Coord { col: 5, row: 6 },
+                Coord { col: 6, row: 0 },
+                Coord { col: 7, row: 0 },
+                Coord { col: 7, row: 7 },
+                Coord { col: 7, row: 9 },
+                Coord { col: 8, row: 0 },
+                Coord { col: 8, row: 7 },
+                Coord { col: 8, row: 9 },
+                Coord { col: 9, row: 4 },
+                Coord { col: 9, row: 5 },
             ],
         };
         let check_v1_str = serde_yaml::to_string(&check_v1_entity).unwrap();
         let check_v1_resp = app
-            .post(format!(
-                "/v1/game/{}/session/{}/check",
-                game_setup_id, create_entity.session_id
-            ))
+            .post(format!("/v1/game/{}/check",game_setup_id))
             .body_string(check_v1_str)
             .await
             .unwrap();
         assert_eq!(check_v1_resp.status(), tide::http::StatusCode::Ok);
     }
+
+
+    #[async_std::test]
+    async fn test_hints_v1() {
+        let game_setup_id = uuid::uuid!("dd8fb490-72c8-485b-aeea-537b9be34e4b");
+        let app = build_app();
+        let hint_resp = app
+            .get(format!("/v1/game/{}/hint?limit=3", game_setup_id))
+            .recv_string()
+            .await
+            .unwrap();
+        let hint_entity = serde_yaml::from_str::<HintsV1>(&hint_resp).unwrap();
+        assert_eq!(hint_entity.coords.len(), 3);
+        assert_eq!(hint_entity, HintsV1{coords: vec![Coord{row:0, col:8}, Coord{row:0, col:7}, Coord{row:0, col:6}]});
+    }
+
 }

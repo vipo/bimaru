@@ -59,12 +59,29 @@ pub trait OccupiedCells {
     fn occupied_rows(&self) -> [u8; 10];
 }
 
+pub trait Searchable {
+    fn find_position(&self, value: u8) -> Option<(usize, usize)>;
+}
+
 impl OccupiedCells for Setup {
     fn occupied_cols(&self) -> [u8; 10] {
         occ(&|i, j| self[i][j])
     }
     fn occupied_rows(&self) -> [u8; 10] {
         occ(&|i, j| self[j][i])
+    }
+}
+
+impl Searchable for Setup {
+    fn find_position(&self, value: u8) -> Option<(usize, usize)> {
+        for i in MIN_INDEX..=MAX_INDEX {
+            for j in MIN_INDEX..=MAX_INDEX {
+                if self[i][j] == value {
+                    return Some((i, j));
+                }
+            }
+        }
+        None
     }
 }
 

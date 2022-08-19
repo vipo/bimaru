@@ -1,4 +1,4 @@
-.PHONY: publish
+
 publish:
 	rm -rf ./target
 	docker build . -t vipo/bimaru:latest

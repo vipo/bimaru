@@ -2,19 +2,37 @@ use im::{hashmap, HashMap};
 use uuid::{uuid, Uuid};
 
 pub type Setup = [[u8; 10]; 10];
-pub type Setups = HashMap<Uuid, Setup>;
+#[derive(Clone, Copy)]
+pub struct SetupFormat{
+    pub create_format: CreateFormat,
+    pub hint_format: HintFormat,
+    pub setup: Setup
+}
+pub type Setups = HashMap<Uuid, SetupFormat>;
+
+#[derive(Clone, Copy)]
+pub enum HintFormat {
+    List,
+    Nested,
+}
+#[derive(Clone, Copy)]
+pub enum CreateFormat {
+    List,
+    Nested
+}
 
 pub fn build_all() -> Setups {
     hashmap! {
-        uuid!("5109c2b1-7c4d-4f56-9be2-f6675c968331") => GAME_0,
-        uuid!("dd8fb490-72c8-485b-aeea-537b9be34e4b") => GAME_1,
-        uuid!("37073150-f43d-4609-94ec-dcbeffcb472a") => GAME_2,
+        uuid!("5109c2b1-7c4d-4f56-9be2-f6675c968331") => SetupFormat{create_format: CreateFormat::Nested, hint_format: HintFormat::Nested, setup: GAME_0},
+        uuid!("dd8fb490-72c8-485b-aeea-537b9be34e4b") => SetupFormat{create_format: CreateFormat::List,   hint_format: HintFormat::Nested, setup: GAME_1},
+        uuid!("37073150-f43d-4609-94ec-dcbeffcb472a") => SetupFormat{create_format: CreateFormat::Nested, hint_format: HintFormat::List,   setup: GAME_2},
     }
 }
 
 pub const MAX_INDEX: usize = 9;
 pub const MIN_INDEX: usize = 0;
 
+// purely experimental, do not expose to students
 pub const GAME_0: Setup = [
     [00, 07, 06, 05, 00, 00, 00, 00, 00, 00],
     [00, 00, 00, 00, 00, 00, 00, 00, 00, 00],
@@ -65,10 +83,10 @@ pub trait Searchable {
 
 impl OccupiedCells for Setup {
     fn occupied_cols(&self) -> [u8; 10] {
-        occ(&|i, j| self[i][j])
+        occ(&|i, j| self[j][i])
     }
     fn occupied_rows(&self) -> [u8; 10] {
-        occ(&|i, j| self[j][i])
+        occ(&|i, j| self[i][j])
     }
 }
 

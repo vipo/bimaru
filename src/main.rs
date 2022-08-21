@@ -1,7 +1,7 @@
 mod setups;
 
 use serde::{Deserialize, Serialize};
-use setups::{build_all, OccupiedCells, Searchable, Setup, Setups};
+use setups::{build_all, CreateFormat, HintFormat, OccupiedCells, Searchable, Setup, Setups};
 use std::str::FromStr;
 use std::sync::Arc;
 use tide::{Request, Response, Server};
@@ -143,18 +143,16 @@ async fn make_hint(req: Request<State>) -> tide::Result {
                 Ok(v) => v.limit,
                 Err(_) => 0,
             };
-            let mut hints: Vec<Coord> = find_hints(setup, limit.min(MAX_HINTS));
-            match req
-                .header("accept")
-                .map(|hv| hv.as_str().eq("text/x-yaml-nested-lists"))
-            {
-                Some(true) => yaml_response(
+            let mut hints: Vec<Coord> = find_hints(&setup.setup, limit.min(MAX_HINTS));
+            match setup.hint_format {
+                HintFormat::Nested => yaml_response(
                     200,
+                    CT_YAML_NESTED,
                     &(NestedHints {
                         coords: to_non_empty_list(&mut hints),
                     }),
                 ),
-                _ => yaml_response(200, &(Hints { coords: hints })),
+                HintFormat::List => yaml_response(200, CT_YAML, &(Hints { coords: hints })),
             }
         } else {
             not_found("Unknown game setup")
@@ -170,7 +168,7 @@ async fn check(mut req: Request<State>) -> tide::Result {
         if let Some(setup) = req.state().clone().setups.get(&game_setup_id) {
             if let Ok(body_str) = req.body_string().await {
                 if let Ok(entity) = serde_yaml::from_str::<Check>(&body_str) {
-                    if entity.solves(*setup) {
+                    if entity.solves(setup.setup) {
                         finish()
                     } else {
                         try_harder()
@@ -192,28 +190,26 @@ async fn check(mut req: Request<State>) -> tide::Result {
 async fn new_game(req: Request<State>) -> tide::Result {
     let game_setup_str: &str = req.param("setup_id")?;
     if let Ok(game_setup_id) = Uuid::from_str(game_setup_str) {
-        if let Some(s) = req.state().setups.get(&game_setup_id) {
-            match req
-                .header("accept")
-                .map(|hv| hv.as_str().eq("text/x-yaml-nested-lists"))
-            {
-                Some(true) => {
+        if let Some(sf) = req.state().setups.get(&game_setup_id) {
+            let s = sf.setup;
+            match sf.create_format {
+                CreateFormat::Nested => {
                     let resp = NestedNewGame {
                         game_setup_id,
                         number_of_hints: MAX_HINTS,
                         occupied_cols: to_non_empty_list(&mut s.occupied_cols().to_vec()),
                         occupied_rows: to_non_empty_list(&mut s.occupied_rows().to_vec()),
                     };
-                    yaml_response(201, &resp)
+                    yaml_response(201, CT_YAML_NESTED, &resp)
                 }
-                _ => {
+                CreateFormat::List => {
                     let resp = NewGame {
                         game_setup_id,
                         number_of_hints: MAX_HINTS,
                         occupied_cols: s.occupied_cols(),
                         occupied_rows: s.occupied_rows(),
                     };
-                    yaml_response(201, &resp)
+                    yaml_response(201, CT_YAML, &resp)
                 }
             }
         } else {
@@ -224,14 +220,18 @@ async fn new_game(req: Request<State>) -> tide::Result {
     }
 }
 
-fn yaml_response<T>(status: u16, value: &T) -> tide::Result
+const CT_YAML: &str = "text/x-yaml";
+const CT_YAML_NESTED: &str = "text/x-yaml-nested-lists";
+const CT_PLAIN: &str = "text/plain";
+
+fn yaml_response<T>(status: u16, ct: &str, value: &T) -> tide::Result
 where
     T: Serialize,
 {
     let yaml: String = serde_yaml::to_string(&value)?;
     Ok(Response::builder(status)
         .body(yaml)
-        .content_type("text/x-yaml")
+        .content_type(ct)
         .build())
 }
 
@@ -245,21 +245,21 @@ fn illegal_request(text: &str) -> tide::Result {
 fn not_found(text: &str) -> tide::Result {
     Ok(Response::builder(404)
         .body(text)
-        .content_type("text/plain")
+        .content_type(CT_PLAIN)
         .build())
 }
 
 fn finish() -> tide::Result {
     Ok(Response::builder(200)
         .body("Well done!")
-        .content_type("text/plain")
+        .content_type(CT_PLAIN)
         .build())
 }
 
 fn try_harder() -> tide::Result {
     Ok(Response::builder(409)
         .body("Try harder!")
-        .content_type("text/plain")
+        .content_type(CT_PLAIN)
         .build())
 }
 
@@ -376,7 +376,7 @@ mod tests {
 
     #[async_std::test]
     async fn test_hints() {
-        let game_setup_id = uuid::uuid!("dd8fb490-72c8-485b-aeea-537b9be34e4b");
+        let game_setup_id = uuid::uuid!("37073150-f43d-4609-94ec-dcbeffcb472a");
         let app = build_app();
         let hint_resp = app
             .get(format!("/game/{}/hint?limit=3", game_setup_id))
@@ -389,27 +389,26 @@ mod tests {
             hint_entity,
             Hints {
                 coords: vec![
-                    Coord { row: 0, col: 8 },
-                    Coord { row: 0, col: 7 },
-                    Coord { row: 0, col: 6 }
+                    Coord { row: 6, col: 4 },
+                    Coord { row: 6, col: 5 },
+                    Coord { row: 6, col: 6 }
                 ]
             }
         );
     }
     #[async_std::test]
     async fn test_create_nested() {
-        let game_setup_id = uuid::uuid!("dd8fb490-72c8-485b-aeea-537b9be34e4b");
+        let game_setup_id = uuid::uuid!("37073150-f43d-4609-94ec-dcbeffcb472a");
         let app = build_app();
         let create_resp = app
             .post(format!("/game/{}", game_setup_id))
-            .header("Accept", "text/x-yaml-nested-lists")
             .recv_string()
             .await
             .unwrap();
         let create_entity = serde_yaml::from_str::<NestedNewGame>(&create_resp).unwrap();
         assert_eq!(create_entity.number_of_hints, 10);
-        assert_eq!(create_entity.occupied_cols.unwrap().head, 4);
-        assert_eq!(create_entity.occupied_rows.unwrap().head, 2);
+        assert_eq!(create_entity.occupied_cols.unwrap().head, 0);
+        assert_eq!(create_entity.occupied_rows.unwrap().head, 1);
     }
 
     #[async_std::test]
@@ -418,7 +417,6 @@ mod tests {
         let app = build_app();
         let hint_resp = app
             .get(format!("/game/{}/hint?limit=3", game_setup_id))
-            .header("Accept", "text/x-yaml-nested-lists")
             .recv_string()
             .await
             .unwrap();
@@ -426,17 +424,17 @@ mod tests {
         assert_eq!(
             hint_entity,
             NestedHints {
-                coords: Some(NonEmptyList{
+                coords: Some(NonEmptyList {
                     head: Coord { row: 0, col: 8 },
-                    tail: Some(Box::new(NonEmptyList{
+                    tail: Some(Box::new(NonEmptyList {
                         head: Coord { row: 0, col: 7 },
                         tail: Some(Box::new(NonEmptyList {
                             head: Coord { row: 0, col: 6 },
-                            tail: None }))
+                            tail: None
+                        }))
                     }))
                 })
             }
         );
     }
-
 }

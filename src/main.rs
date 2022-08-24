@@ -337,9 +337,10 @@ mod tests {
         let check_v1_resp = app
             .post(format!("/game/{}/check", game_setup_id))
             .body_string(check_v1_str)
+            .recv_string()
             .await
             .unwrap();
-        assert_eq!(check_v1_resp.status(), tide::http::StatusCode::Conflict);
+        assert_eq!(check_v1_resp, "Try harder!");
 
         let check_v1_entity = Check {
             coords: vec![
@@ -369,9 +370,10 @@ mod tests {
         let check_v1_resp = app
             .post(format!("/game/{}/check", game_setup_id))
             .body_string(check_v1_str)
+            .recv_string()
             .await
             .unwrap();
-        assert_eq!(check_v1_resp.status(), tide::http::StatusCode::Ok);
+        assert_eq!(check_v1_resp, "Well done!");
     }
 
     #[async_std::test]

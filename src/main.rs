@@ -257,7 +257,7 @@ fn finish() -> tide::Result {
 }
 
 fn try_harder() -> tide::Result {
-    Ok(Response::builder(409)
+    Ok(Response::builder(200)
         .body("Try harder!")
         .content_type(CT_PLAIN)
         .build())

@@ -26,6 +26,9 @@ pub fn build_all() -> Setups {
         uuid!("5109c2b1-7c4d-4f56-9be2-f6675c968331") => SetupFormat{create_format: CreateFormat::Nested, hint_format: HintFormat::Nested, setup: GAME_0},
         uuid!("dd8fb490-72c8-485b-aeea-537b9be34e4b") => SetupFormat{create_format: CreateFormat::List,   hint_format: HintFormat::Nested, setup: GAME_1},
         uuid!("37073150-f43d-4609-94ec-dcbeffcb472a") => SetupFormat{create_format: CreateFormat::Nested, hint_format: HintFormat::List,   setup: GAME_2},
+        uuid!("3a7a8f44-b224-40ff-9c5c-58a1b60eab4b") => SetupFormat{create_format: CreateFormat::List,   hint_format: HintFormat::Nested, setup: GAME_3},
+        uuid!("81520eec-47d6-43da-a692-2926a3dc2871") => SetupFormat{create_format: CreateFormat::Nested, hint_format: HintFormat::List,   setup: GAME_4},
+        uuid!("63dac12b-2afa-49e0-b133-edce3955b49a") => SetupFormat{create_format: CreateFormat::List,   hint_format: HintFormat::Nested, setup: GAME_5},
     }
 }
 
@@ -70,6 +73,45 @@ pub const GAME_2: Setup = [
     [00, 17, 00, 00, 00, 00, 00, 00, 00, 00],
     [00, 00, 00, 00, 00, 00, 00, 00, 00, 00],
     [00, 18, 00, 11, 12, 00, 00, 00, 19, 00],
+];
+
+pub const GAME_3: Setup = [
+    [00, 00, 00, 00, 00, 00, 00, 00, 16, 00],
+    [00, 00, 00, 00, 00, 00, 00, 00, 15, 00],
+    [19, 00, 00, 00, 00, 00, 12, 00, 00, 00],
+    [00, 00, 13, 14, 00, 00, 11, 00, 00, 00],
+    [00, 00, 00, 00, 00, 00, 00, 00, 00, 08],
+    [18, 00, 00, 00, 20, 00, 04, 00, 00, 09],
+    [00, 00, 00, 00, 00, 00, 03, 00, 00, 10],
+    [00, 00, 07, 06, 05, 00, 02, 00, 00, 00],
+    [00, 00, 00, 00, 00, 00, 01, 00, 17, 00],
+    [00, 00, 00, 00, 00, 00, 00, 00, 00, 00],
+];
+
+pub const GAME_4: Setup = [
+    [00, 00, 00, 00, 00, 00, 00, 19, 00, 20],
+    [00, 00, 01, 02, 03, 04, 00, 00, 00, 00],
+    [00, 00, 00, 00, 00, 00, 00, 00, 00, 00],
+    [00, 00, 00, 07, 06, 05, 00, 18, 00, 17],
+    [00, 00, 00, 00, 00, 00, 00, 00, 00, 00],
+    [08, 09, 10, 00, 00, 00, 00, 00, 00, 00],
+    [00, 00, 00, 00, 00, 00, 00, 00, 00, 00],
+    [00, 00, 00, 00, 00, 00, 00, 00, 00, 00],
+    [00, 00, 11, 00, 00, 00, 13, 00, 00, 15],
+    [00, 00, 12, 00, 00, 00, 14, 00, 00, 16],
+];
+
+pub const GAME_5: Setup = [
+    [20, 00, 00, 00, 00, 00, 00, 00, 00, 19],
+    [00, 00, 00, 00, 00, 00, 00, 00, 00, 00],
+    [00, 01, 00, 05, 06, 07, 00, 00, 00, 00],
+    [00, 02, 00, 00, 00, 00, 00, 00, 00, 00],
+    [00, 03, 00, 00, 00, 00, 00, 00, 00, 00],
+    [00, 04, 00, 00, 15, 16, 00, 00, 14, 00],
+    [00, 00, 00, 00, 00, 00, 00, 00, 13, 00],
+    [00, 00, 00, 17, 00, 00, 10, 00, 00, 00],
+    [00, 18, 00, 00, 00, 00, 09, 00, 11, 00],
+    [00, 00, 00, 00, 00, 00, 08, 00, 12, 00],
 ];
 
 pub trait OccupiedCells {
@@ -123,6 +165,9 @@ mod tests {
     #[test_case(GAME_0)]
     #[test_case(GAME_1)]
     #[test_case(GAME_2)]
+    #[test_case(GAME_3)]
+    #[test_case(GAME_4)]
+    #[test_case(GAME_5)]
     fn test_single_game(setup: Setup) {
         let mut flat: Vec<u8> = Vec::with_capacity(100);
         for row in setup {

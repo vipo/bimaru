@@ -75,7 +75,17 @@ pub fn build_all() -> Setups {
             SetupFormat{create_format: CreateFormat::Nested, hint_format: HintFormat::List,   setup: game_24()},
         uuid!("3fcc9068-e55e-4054-a080-2d5994a40f62") =>
             SetupFormat{create_format: CreateFormat::List,   hint_format: HintFormat::Nested, setup: game_25()},
-    }
+        uuid!("e998c938-8a22-4084-94b2-02b01bcc8c12") =>
+            SetupFormat{create_format: CreateFormat::Nested, hint_format: HintFormat::List,   setup: game_26()},
+        uuid!("d12d3fdf-b8c1-47e2-8c13-3a1415bea7b8") =>
+            SetupFormat{create_format: CreateFormat::List,   hint_format: HintFormat::Nested, setup: game_27()},
+        uuid!("d3993d51-041d-4c86-aa69-a6eb85c41e11") =>
+            SetupFormat{create_format: CreateFormat::Nested, hint_format: HintFormat::List,   setup: game_28()},
+        uuid!("4a3df0e3-9e6d-4bae-a2f4-02f23bad933f") =>
+            SetupFormat{create_format: CreateFormat::List,   hint_format: HintFormat::Nested, setup: game_29()},
+        uuid!("2320ab5f-72ff-4dcf-976a-f085401c70e0") =>
+            SetupFormat{create_format: CreateFormat::Nested, hint_format: HintFormat::List,   setup: game_30()},
+        }
 }
 
 pub const MAX_INDEX: usize = 9;
@@ -240,6 +250,26 @@ pub fn game_25() -> Setup {
     reverse_cols(GAME_5)
 }
 
+pub fn game_26() -> Setup {
+    transpose(reverse_cols(GAME_1))
+}
+
+pub fn game_27() -> Setup {
+    transpose(reverse_cols(GAME_2))
+}
+
+pub fn game_28() -> Setup {
+    transpose(reverse_cols(GAME_3))
+}
+
+pub fn game_29() -> Setup {
+    transpose(reverse_cols(GAME_4))
+}
+
+pub fn game_30() -> Setup {
+    transpose(reverse_cols(GAME_5))
+}
+
 pub trait OccupiedCells {
     fn occupied_cols(&self) -> [u8; 10];
     fn occupied_rows(&self) -> [u8; 10];
@@ -321,7 +351,7 @@ mod tests {
 
     #[test]
     fn test_quantity() {
-        assert_eq!(build_all().len(), 26);
+        assert_eq!(build_all().len(), 31);
     }
 
     #[test]
@@ -369,7 +399,6 @@ mod tests {
         assert_eq!(reverse_rows(GAME_0), result);
     }
 
-
     #[test]
     fn test_reverse_cols() {
         let result: Setup = [
@@ -413,6 +442,11 @@ mod tests {
     #[test_case(game_23())]
     #[test_case(game_24())]
     #[test_case(game_25())]
+    #[test_case(game_26())]
+    #[test_case(game_27())]
+    #[test_case(game_28())]
+    #[test_case(game_29())]
+    #[test_case(game_30())]
     fn test_single_game(setup: Setup) {
         let mut flat: Vec<u8> = Vec::with_capacity(100);
         for row in setup {

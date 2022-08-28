@@ -55,6 +55,26 @@ pub fn build_all() -> Setups {
             SetupFormat{create_format: CreateFormat::Nested, hint_format: HintFormat::List,   setup: game_14()},
         uuid!("06d6bab1-ff17-4c9e-8861-e6ae4b227b86") =>
             SetupFormat{create_format: CreateFormat::List,   hint_format: HintFormat::Nested, setup: game_15()},
+        uuid!("2c89e73e-c9c8-48da-a11c-55e61145ab19") =>
+            SetupFormat{create_format: CreateFormat::Nested, hint_format: HintFormat::List,   setup: game_16()},
+        uuid!("4c182baf-e244-431f-9582-5eed5345d89f") =>
+            SetupFormat{create_format: CreateFormat::List,   hint_format: HintFormat::Nested, setup: game_17()},
+        uuid!("1c5abf4c-1b88-4446-9ac2-30c43cacba2a") =>
+            SetupFormat{create_format: CreateFormat::Nested, hint_format: HintFormat::List,   setup: game_18()},
+        uuid!("9cfda689-fee4-4a87-b82b-49dd379f3cad") =>
+            SetupFormat{create_format: CreateFormat::List,   hint_format: HintFormat::Nested, setup: game_19()},
+        uuid!("b2f24476-c8ae-47bb-9d8d-432de66c5cfa") =>
+            SetupFormat{create_format: CreateFormat::Nested, hint_format: HintFormat::List,   setup: game_20()},
+        uuid!("2eebb87b-b86a-4b36-8c19-12a145131d02") =>
+            SetupFormat{create_format: CreateFormat::List,   hint_format: HintFormat::Nested, setup: game_21()},
+        uuid!("90bdd6f1-5302-4ba0-87d7-0f84b9657bc7") =>
+            SetupFormat{create_format: CreateFormat::Nested, hint_format: HintFormat::List,   setup: game_22()},
+        uuid!("726f27ee-8d35-4e1b-8e60-52a3c283a0e4") =>
+            SetupFormat{create_format: CreateFormat::List,   hint_format: HintFormat::Nested, setup: game_23()},
+        uuid!("b365cb28-3578-4b70-a0b5-4b2983ead286") =>
+            SetupFormat{create_format: CreateFormat::Nested, hint_format: HintFormat::List,   setup: game_24()},
+        uuid!("3fcc9068-e55e-4054-a080-2d5994a40f62") =>
+            SetupFormat{create_format: CreateFormat::List,   hint_format: HintFormat::Nested, setup: game_25()},
     }
 }
 
@@ -180,6 +200,46 @@ pub fn game_15() -> Setup {
     reverse_rows(GAME_5)
 }
 
+pub fn game_16() -> Setup {
+    transpose(reverse_rows(GAME_1))
+}
+
+pub fn game_17() -> Setup {
+    transpose(reverse_rows(GAME_2))
+}
+
+pub fn game_18() -> Setup {
+    transpose(reverse_rows(GAME_3))
+}
+
+pub fn game_19() -> Setup {
+    transpose(reverse_rows(GAME_4))
+}
+
+pub fn game_20() -> Setup {
+    transpose(reverse_rows(GAME_5))
+}
+
+pub fn game_21() -> Setup {
+    reverse_cols(GAME_1)
+}
+
+pub fn game_22() -> Setup {
+    reverse_cols(GAME_2)
+}
+
+pub fn game_23() -> Setup {
+    reverse_cols(GAME_3)
+}
+
+pub fn game_24() -> Setup {
+    reverse_cols(GAME_4)
+}
+
+pub fn game_25() -> Setup {
+    reverse_cols(GAME_5)
+}
+
 pub trait OccupiedCells {
     fn occupied_cols(&self) -> [u8; 10];
     fn occupied_rows(&self) -> [u8; 10];
@@ -243,6 +303,16 @@ fn reverse_rows(setup: Setup) -> Setup {
     result
 }
 
+fn reverse_cols(setup: Setup) -> Setup {
+    let mut result: Setup = [[0u8; 10]; 10];
+    for i in MIN_INDEX..=MAX_INDEX {
+        for j in MIN_INDEX..=MAX_INDEX {
+            result[i][j] = setup[i][MAX_INDEX - j];
+        }
+    }
+    result
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -251,13 +321,14 @@ mod tests {
 
     #[test]
     fn test_quantity() {
-        assert_eq!(build_all().len(), 16);
+        assert_eq!(build_all().len(), 26);
     }
 
     #[test]
     fn test_non_equal(){
         assert_eq!(GAME_0, GAME_0);
         assert_ne!(GAME_0, GAME_1);
+        assert_eq!(reverse_rows(reverse_rows(GAME_0)), GAME_0);
         for pair in build_all().iter().into_iter().combinations(2) {
             assert_eq!(pair.len(), 2);
             assert_ne!(pair.get(0).unwrap().1.setup, pair.get(1).unwrap().1.setup);
@@ -298,6 +369,24 @@ mod tests {
         assert_eq!(reverse_rows(GAME_0), result);
     }
 
+
+    #[test]
+    fn test_reverse_cols() {
+        let result: Setup = [
+            [00, 00, 00, 00, 00, 00, 05, 06, 07, 00],
+            [00, 00, 00, 00, 00, 00, 00, 00, 00, 00],
+            [00, 00, 00, 00, 00, 00, 00, 00, 00, 08],
+            [20, 00, 00, 01, 02, 03, 04, 00, 00, 09],
+            [00, 00, 00, 00, 00, 00, 00, 00, 00, 10],
+            [19, 00, 00, 00, 00, 00, 00, 00, 00, 00],
+            [00, 00, 00, 00, 00, 00, 00, 00, 00, 11],
+            [00, 00, 00, 00, 00, 00, 00, 00, 00, 12],
+            [18, 00, 00, 00, 00, 00, 00, 00, 00, 00],
+            [00, 00, 17, 00, 16, 15, 00, 14, 13, 00],
+        ];
+        assert_eq!(reverse_cols(GAME_0), result);
+    }
+
     #[test_case(GAME_0)]
     #[test_case(GAME_1)]
     #[test_case(GAME_2)]
@@ -314,6 +403,16 @@ mod tests {
     #[test_case(game_13())]
     #[test_case(game_14())]
     #[test_case(game_15())]
+    #[test_case(game_16())]
+    #[test_case(game_17())]
+    #[test_case(game_18())]
+    #[test_case(game_19())]
+    #[test_case(game_20())]
+    #[test_case(game_21())]
+    #[test_case(game_22())]
+    #[test_case(game_23())]
+    #[test_case(game_24())]
+    #[test_case(game_25())]
     fn test_single_game(setup: Setup) {
         let mut flat: Vec<u8> = Vec::with_capacity(100);
         for row in setup {

@@ -1,9 +1,8 @@
 use im::{hashmap, HashMap};
 use uuid::{uuid, Uuid};
-use itertools::Itertools;
 
 pub type Setup = [[u8; 10]; 10];
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub struct SetupFormat{
     pub create_format: CreateFormat,
     pub hint_format: HintFormat,
@@ -11,12 +10,12 @@ pub struct SetupFormat{
 }
 pub type Setups = HashMap<Uuid, SetupFormat>;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub enum HintFormat {
     List,
     Nested,
 }
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub enum CreateFormat {
     List,
     Nested
@@ -248,9 +247,21 @@ fn reverse_rows(setup: Setup) -> Setup {
 mod tests {
     use super::*;
     use test_case::test_case;
+    use itertools::Itertools;
+
     #[test]
     fn test_quantity() {
         assert_eq!(build_all().len(), 16);
+    }
+
+    #[test]
+    fn test_non_equal(){
+        assert_eq!(GAME_0, GAME_0);
+        assert_ne!(GAME_0, GAME_1);
+        for pair in build_all().iter().into_iter().combinations(2) {
+            assert_eq!(pair.len(), 2);
+            assert_ne!(pair.get(0).unwrap().1.setup, pair.get(1).unwrap().1.setup);
+        }
     }
 
     #[test]

@@ -19,6 +19,7 @@ uuid = {version = "1.1.2", features = ["v4", "serde", "macro-diagnostics", "fast
 serde_yaml = "0.9.4"
 im = "15.1.0"
 itertools = "0.10.3"
+string-builder = "0.2.0"
 
 [dev-dependencies]
 test-case = "2.2.1"

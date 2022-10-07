@@ -6,6 +6,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tide::{Request, Response, Server};
 use uuid::Uuid;
+use string_builder::Builder;
 
 const MAX_HINTS: u8 = 10;
 
@@ -79,6 +80,23 @@ fn find_hints(setup: &Setup, limit: u8) -> Vec<Coord> {
     result
 }
 
+fn render_board(setup: &Setup) -> String {
+    let mut builder = Builder::default();
+    builder.append(" 0123456789");
+    for i in setups::MIN_INDEX..=setups::MAX_INDEX {
+        builder.append('\n');
+        builder.append(i.to_string());
+        for j in setups::MIN_INDEX..=setups::MAX_INDEX {
+            if setup[i][j] > 0 {
+                builder.append('#')
+            } else {
+                builder.append(' ')
+            }
+        }
+    }
+    builder.string().unwrap()
+}
+
 #[derive(Clone)]
 struct State {
     setups: Arc<Setups>,
@@ -131,8 +149,22 @@ fn build_app() -> Server<State> {
     app.at("/game/:setup_id").post(new_game);
     app.at("/game/:setup_id/check").post(check);
     app.at("/game/:setup_id/hint").get(make_hint);
+    app.at("/game/:setup_id/board").get(show_board);
 
     app
+}
+
+async fn show_board(req: Request<State>) -> tide::Result {
+    let game_setup_str: &str = req.param("setup_id")?;
+    if let Ok(game_setup_id) = Uuid::from_str(game_setup_str) {
+        if let Some(setup) = req.state().clone().setups.get(&game_setup_id) {
+            text_response(&render_board(&setup.setup))
+        } else {
+            not_found("Unknown game setup")
+        }
+    } else {
+        not_found("Game setup id not found")
+    }
 }
 
 async fn make_hint(req: Request<State>) -> tide::Result {
@@ -249,18 +281,19 @@ fn not_found(text: &str) -> tide::Result {
         .build())
 }
 
-fn finish() -> tide::Result {
+fn text_response(text: &str) -> tide::Result {
     Ok(Response::builder(200)
-        .body("Well done!")
+        .body(text)
         .content_type(CT_PLAIN)
         .build())
 }
 
+fn finish() -> tide::Result {
+    text_response("Well done!")
+}
+
 fn try_harder() -> tide::Result {
-    Ok(Response::builder(200)
-        .body("Try harder!")
-        .content_type(CT_PLAIN)
-        .build())
+    text_response("Try harder!")
 }
 
 mod uuid_as_string {
